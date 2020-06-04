@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Food Truck Finder</title>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      section {
+        margin: 2em 0;
+      }
+      li, .form, #results {
+        margin: 1em 0;
+      }
+      button, input {
+        font: inherit;
+      }
+      addr {
+        display: block;
+        font-size: 80%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Food Truck Finder</h1>
+    <section>
+      <button id="load">Load Data</button> <span id="status"></span>
+    </section>
+    <section>
+      <div class="form">
+        <label>Lat: <input id="lat"></label>
+        <label>Lon: <input id="lon"></label>
+        or <button id="locate">Get Location</button>
+      </div>
+      <button id="search">Search</button>
+      <div id="results"></div>
+    </section>
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.5.0.min.js"></script>
+    <script>
+      var lat = $('#lat')[0];
+      var lon = $('#lon')[0];
+      
+      $('#locate').click(function() {
+        var button = this;
+        button.disabled = true;
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              lat.value = position.coords.latitude;
+              lon.value = position.coords.longitude;
+              button.disabled = false;
+            },
+            function(error) {
+              alert(error);
+              button.disabled = false;
+            });
+        } else {
+          alert('Geolocation cannot be detected');
+        }
+      });
+      $('#search').click(function() {
+        var button = this;
+        var results = $('#results').empty();
+        button.disabled = true;
+
+        $.ajax('/restaurants', {data: {lat: lat.value, lon: lon.value}})
+          .done(function(data) {
+            results.append(
+              $('<ol>').append(data.results.map(function(result) {
+                return $('<li>').append(
+                  $('<strong>').text(result.name),
+                  $('<addr>').text(result.address + ' - ' + result.distance + ' km away'),
+                  $('<p>').text(result.description)
+                );
+              }))
+            );
+          })
+          .fail(function(data) {
+            results.text(data.responseJSON.error);
+          })
+          .always(function() {
+            button.disabled = false;
+          });
+      });
+      $('#load').click(function() {
+        var button = this;
+        var status = $('#status').empty();
+        button.disabled = true;
+      
+        $.ajax('/load', {method: 'POST'})
+          .done(function(data) {
+            status.text(data.status);
+          })
+          .fail(function(data) {
+            status.text(data.responseJSON.error);
+          })
+          .always(function() {
+            button.disabled = false;
+          });
+      });
+    </script>
+  </body>
+</html>
